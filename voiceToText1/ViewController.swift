@@ -11,6 +11,9 @@ import Speech
 
 class ViewController: UIViewController, SFSpeechRecognizerDelegate {
     
+    @IBOutlet weak var currentWPMLabel: UILabel!
+    @IBOutlet weak var timerLabel: UILabel!
+    @IBOutlet weak var wpmLabel: UILabel!
     @IBOutlet weak var btnRecord: UIButton!
     @IBOutlet weak var lblToChange: UILabel!
     @IBOutlet weak var viewToChangeColor: UIView!
@@ -19,7 +22,8 @@ class ViewController: UIViewController, SFSpeechRecognizerDelegate {
     let speechRecognizer = SFSpeechRecognizer(locale: Locale.init(identifier: "en-US"))
     let request = SFSpeechAudioBufferRecognitionRequest()
     var recognitionTask: SFSpeechRecognitionTask?
-
+    var startTime: DispatchTime?
+    var previousTime: DispatchTime?
     override func viewDidLoad() {
         super.viewDidLoad()
         // Do any additional setup after loading the view.
@@ -38,6 +42,8 @@ class ViewController: UIViewController, SFSpeechRecognizerDelegate {
         audioEngine.prepare()
         do {
             try audioEngine.start()
+            startTime = DispatchTime.now()
+            previousTime = DispatchTime.now()
         } catch {
             print(error)
         }
@@ -61,6 +67,11 @@ class ViewController: UIViewController, SFSpeechRecognizerDelegate {
                     lastString = bestString.substring(from: indexTo)
                 }
                 self.checkForColorSaid(resultString: lastString)
+                let numOfWords = self.getNumberOfWords(words: bestString)
+                self.wpmLabel.text = String(self.calculateAverageWPM(numberOfWords: numOfWords))
+                if numOfWords % 5 == 0{
+                    self.currentWPMLabel.text = String(self.calculateWPM(numberOfWords: numOfWords))
+                }
             }else{
                 print(error)
             }
@@ -101,6 +112,26 @@ class ViewController: UIViewController, SFSpeechRecognizerDelegate {
                 }
             }
         }
+    }
+    
+    func getNumberOfWords(words:String)->Int{
+        let listString = words.components(separatedBy: " ")
+        return listString.count;
+    }
+    func calculateAverageWPM(numberOfWords: Int) -> Double{
+        let timeNow = DispatchTime.now()
+        let nanoTime = timeNow.uptimeNanoseconds - startTime!.uptimeNanoseconds
+        let timeInterval = Double(nanoTime) / 1_000_000_000
+        timerLabel.text = "duration: \(timeInterval) seconds"
+        return (((Double(numberOfWords)) / (Double(timeInterval))) * 60)
+    }
+    func calculateWPM(numberOfWords: Int) -> Double{
+        let timeNow = DispatchTime.now()
+        let nanoTime = timeNow.uptimeNanoseconds - previousTime!.uptimeNanoseconds
+        let timeInterval = Double(nanoTime) / 1_000_000_000
+        timerLabel.text = "duration: \(timeInterval) seconds"
+        previousTime = DispatchTime.now()
+        return (((Double(numberOfWords)) / (Double(timeInterval))) * 60)
     }
     
 }
